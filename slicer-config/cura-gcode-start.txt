@@ -1,0 +1,58 @@
+;Sliced at: {day} {date} {time}
+G21                                         ; metric values
+G90                                         ; absolute positioning
+M83                                         ; use relative extrusion mode for prime line
+
+; Reset speed and extrusion rates
+M200 D0                                     ; disable volumetric e
+M220 S100                                   ; reset speed
+M221 S100                                   ; reset extrusion multiplier
+
+; Set hardware parameters
+M201 X1500 Y1500 Z1000 E5000                ; sets maximum accelerations, mm/sec^2
+M203 X200 Y200 Z12 E120                     ; sets maximum feedrates, mm/sec
+M204 P1500 R1250 T1500                      ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2
+M205 X10.00 Y10.00 Z0.40 E1.50              ; sets the jerk limits, mm/sec
+M205 S0 T0                                  ; sets the minimum extruding and travel feed rate, mm/sec
+
+; Set initial warmup temps
+M117 Nozzle preheat
+M104 S160                                   ; set extruder no-ooze temp
+M140 S60                                    ; set bed auto level sensor warmup
+
+; Nozzle warmup before home to avoid driving hardened ooze into PEI surface
+M109 S160                                   ; wait for extruder no-ooze warmup temp before mesh bed leveling, cool hot PINDA
+
+; Home
+G28 X0 Y0                                   ;move X/Y to min endstops
+G28 Z0                                      ; move Z to min endstops
+
+G0 Z3                                       ; Raise nozzle before move
+G0 X125 Y180 F10200                         ; Move nozzle to sensor warming position
+G0 Z1 F10200                                ; Lower nozzle to sensor warming position
+
+M190 S35                                    ; wait for sensor temp to stabilize
+M140 S{material_bed_temperature_layer_0}    ; set target bed temp
+G0 Z3              
+
+G29                                         ; bed leveling
+
+; Final warmup routine
+M117 Final warmup
+G0 Z5                                       ; Raise nozzle to avoid denting bed while nozzle heats
+M140 S{material_bed_temperature_layer_0}    ; set bed final temp
+M104 S{material_print_temperature_layer_0}  ; set extruder final temp
+M109 S{material_print_temperature_layer_0}  ; wait for extruder final temp
+M190 S{material_bed_temperature_layer_0}    ; wait for bed final temp
+
+
+; Prime line routine
+M82                                         ; use absolute extrusion mode for print
+G0 X0 Y15 F9000                             ; Go to front
+G0 Z1.0                                     ; Drop to bed
+G92 E0                                      ; zero the extruded length
+G1 X40 E25 F500                             ; Extrude 25mm of filament in a 4cm line
+G92 E0                                      ; zero the extruded length
+G1 E-1 F500                                 ; Retract a little
+G1 X80 F4000                                ; Quickly wipe away from the filament line
+G1 Z1.3                                     ; Raise and begin printing.
